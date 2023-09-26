@@ -1,70 +1,66 @@
 section .data
-    n: dd 0
-    num: dd 0
-    sum: dd 0
-    str_in: db "Nhap so luong so nguyen: "
-    str_num: db "Nhap so nguyen thu %d: "
-    str_sum: db "Tong cua n so nguyen la: "
-    len_str_in: equ $-str_in
-    len_str_num: equ $-str_num
-    len_str_sum: equ $-str_sum
+    msg db 'How many numbers: ',0   ; Prompt message
+    len_msg equ $ - msg
+
+section .bss
+    num resd 1                     ; Variable to store the number of inputs
+    numbers resb 4                ; Array to store input numbers (up to 10)
+    sum resd 1                     ; Variable to store the sum
 
 section .text
-    global main
+    global _start
 
-main:
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, str_in
-    mov edx, len_str_in
+_start:
+    ; Display the prompt for the number of inputs
+    mov eax, 4                      ; sys_write
+    mov ebx, 1                      ; stdout
+    mov ecx, msg                    ; message address
+    mov edx, len_msg                ; message length
     int 0x80
 
-    call read_int
-    mov [n], eax
-
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, str_num
-    mov edx, len_str_num
+    ; Read the number of inputs
+    mov eax, 3                      ; sys_read
+    mov ebx, 0                      ; stdin
+    mov ecx, num                    ; address to store the number of inputs
+    mov edx, 4                      ; read 4 bytes (int)
     int 0x80
 
-    mov ecx, [n]
-    mov ebx, 0
-    mov eax, 0
-    jmp loop
-
-loop:
-    add eax, ebx
-    inc ebx
-    loop loop
-
-    mov [sum], eax
-
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, str_sum
-    mov edx, len_str_sum
+    ; Convert the input to an integer
+    mov eax, [num]
+    sub eax, '0'                    ; Convert ASCII digit to integer
+    mov [num], eax
+    add eax, '0'
+    
+    ; Initialize sum to 0
+    mov dword [sum], 0
+    
+    ; Loop input
+    mov cl, [num]
+input_loop:
+    ; Read the next number
+    mov eax, 3                      ; sys_read
+    mov ebx, 0                      ; stdin
+    mov ecx, numbers                ; address to store the current number
+    mov edx, 4                      ; read 4 bytes (int)
     int 0x80
 
-    mov eax, [sum]
-    mov ebx, 1
-    mov ecx, num
-    mov edx, 4
+    ; Convert the input to an integer
+    mov eax, [numbers]
+    sub eax, '0'                    ; Convert ASCII digit to integer
+    add [sum], eax
+    add eax, '0'
+    
+    dec cl                         ; Decrement loop counter
+    jnz input_loop
+
+done_input:
+    ; Display the sum
+    mov eax, 4                      ; sys_write
+    mov ebx, 1                      ; stdout
+    mov ecx, sum                    ; address of the sum
+    mov edx, 4                      ; 4 bytes to print (int)
     int 0x80
 
-    mov eax, 1
-    mov ebx, 0
+    ; Exit the program
+    mov eax, 1                      ; sys_exit
     int 0x80
-
-read_int:
-    push ebp
-    mov ebp, esp
-
-    mov eax, 3
-    mov ebx, 0
-    mov ecx, num
-    mov edx, 4
-    int 0x80
-
-    pop ebp
-    ret
